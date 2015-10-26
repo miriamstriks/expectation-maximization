@@ -22,7 +22,11 @@ public class EM {
    //we can easily calculate the probability that gender = female.
    private double[] theta;
    
+   //total number of instances in the data set
    private int totalObservations;
+   
+   //total number of each possible configuration in the data set
+   private int[] numOfConfig;
 
    
    /*
@@ -33,6 +37,7 @@ public class EM {
        hardCounts = new int[8];
        expectedCounts = new double[8];
        theta  = new double[4];
+       numOfConfig = new int[8];
    }
    
    public void setParameters(Parameters params){
@@ -67,10 +72,10 @@ public class EM {
             if(line.charAt(0) == '-'){
                //look up probability male given observed weight and height
                intForm = Integer.parseInt(line.substring(1), 2);
-               probM = theta[intForm]; 
-               //add probability to expected count
-               expectedCounts[intForm]  += probM;  //expected count male given weight and height
-               expectedCounts[4 + intForm] += (1- probM); //expected count female
+               
+               //increment the count of each completion of the missing data
+               numOfConfig[intForm]++;  //count of male given weight and height
+               numOfConfig[4 + intForm]++; //count of female
             }
             else{
                intForm = Integer.parseInt(line, 2);
@@ -129,17 +134,18 @@ public class EM {
       double probM = 0.0; 
       
       //compute probability for each possible case given the new estimated parameters
-      populateTheta(parameters);
+      populateTheta();
       
       //reset all expected counts to 0
       Arrays.fill(expectedCounts, 0.0);
     
       for (int i = 0; i < 4; i++){
          
-            //look up probability (expected count) for this case
+            //look up probability (expected count) for this case 
+            //0 corresponds to case 000, 1 to case 001, etc.
             probM = theta[i];
-            expectedCounts[i] += probM;
-            expectedCounts[4 + i] += (1 - probM);
+            expectedCounts[i] = probM * numOfConfig[i];
+            expectedCounts[4 + i] += (1 - probM) * numOfConfig[4 + i];
             
        }
    }
@@ -184,12 +190,12 @@ public class EM {
    }
    
  
-   private void populateTheta(Parameters params){
+   private void populateTheta(){
       
-      theta[0] = params.getProbabilityMale("0", "0");
-      theta[1] = params.getProbabilityMale("0", "1");
-      theta[2] = params.getProbabilityMale("1", "0");
-      theta[3] = params.getProbabilityMale("1", "1");
+      theta[0] = parameters.getProbabilityMale("0", "0");
+      theta[1] = parameters.getProbabilityMale("0", "1");
+      theta[2] = parameters.getProbabilityMale("1", "0");
+      theta[3] = parameters.getProbabilityMale("1", "1");
       
    }
    
@@ -214,7 +220,7 @@ public class EM {
       
       em.setParameters(initialParameters);
       
-      em.populateTheta(initialParameters);
+      em.populateTheta();
       
       em.readInput(file);
 
